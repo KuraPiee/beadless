@@ -43,10 +43,11 @@ export interface ProjectContext {
   updatedAt?: string;
 }
 
-export interface GitMemConfig {
+export interface BeadlessConfig {
   version: string;
   autoCommit: boolean;
   commitPrefix: string;
   branchAware: boolean;
   maxRecentDecisions: number;
 }
+export type GitMemConfig = BeadlessConfig;

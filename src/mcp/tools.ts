@@ -1,5 +1,4 @@
-﻿import { z } from 'zod';
-import { MemoryEngine } from '../core/memory.js';
+﻿import { MemoryEngine } from '../core/memory.js';
 import { TaskEngine } from '../core/tasks.js';
 import { ContextEngine } from '../core/context.js';
 import { MemoryCategory } from '../types/index.js';
@@ -7,7 +6,7 @@ import { MemoryCategory } from '../types/index.js';
 export function getMcpToolsDefinition() {
   return [
     {
-      name: 'gitmem_remember',
+      name: 'beadless_remember',
       description: 'Store a project decision, lesson learned, architectural choice, or gotcha in git-native memory. Survives across agent sessions and git branches.',
       inputSchema: {
         type: 'object',
@@ -35,7 +34,7 @@ export function getMcpToolsDefinition() {
       }
     },
     {
-      name: 'gitmem_recall',
+      name: 'beadless_recall',
       description: 'Search past project decisions, lessons, or architectural context using fuzzy search. Call this before making major architectural changes or when debugging unfamiliar code.',
       inputSchema: {
         type: 'object',
@@ -58,7 +57,7 @@ export function getMcpToolsDefinition() {
       }
     },
     {
-      name: 'gitmem_context',
+      name: 'beadless_context',
       description: 'Retrieve the project context briefing, including architecture overview, conventions, critical lessons, and active task queue. Call this at the start of an agent session.',
       inputSchema: {
         type: 'object',
@@ -67,7 +66,7 @@ export function getMcpToolsDefinition() {
       }
     },
     {
-      name: 'gitmem_task_create',
+      name: 'beadless_task_create',
       description: 'Create a new task with optional dependencies (blockedBy). Use this to decompose complex work into trackable steps.',
       inputSchema: {
         type: 'object',
@@ -86,7 +85,7 @@ export function getMcpToolsDefinition() {
       }
     },
     {
-      name: 'gitmem_task_claim',
+      name: 'beadless_task_claim',
       description: 'Claim a task to signify an agent is actively working on it. Fails if dependencies are not yet completed.',
       inputSchema: {
         type: 'object',
@@ -98,7 +97,7 @@ export function getMcpToolsDefinition() {
       }
     },
     {
-      name: 'gitmem_task_complete',
+      name: 'beadless_task_complete',
       description: 'Mark a task as completed with an outcome summary. Automatically unblocks downstream dependent tasks.',
       inputSchema: {
         type: 'object',
@@ -110,7 +109,7 @@ export function getMcpToolsDefinition() {
       }
     },
     {
-      name: 'gitmem_task_list',
+      name: 'beadless_task_list',
       description: 'List project tasks. Can filter by status or query only unblocked (ready) tasks.',
       inputSchema: {
         type: 'object',
@@ -139,8 +138,11 @@ export async function handleMcpToolCall(
     context: ContextEngine;
   }
 ) {
-  switch (name) {
-    case 'gitmem_remember': {
+  // Normalize beadless_ or gitmem_ prefixes
+  const normalized = name.replace(/^(beadless|gitmem)_/, '');
+
+  switch (normalized) {
+    case 'remember': {
       const entry = await engines.memory.remember({
         category: args.category as MemoryCategory,
         title: args.title,
@@ -157,7 +159,7 @@ export async function handleMcpToolCall(
       };
     }
 
-    case 'gitmem_recall': {
+    case 'recall': {
       const results = await engines.memory.recall(args.query, {
         category: args.category as MemoryCategory,
         limit: args.limit || 5
@@ -184,14 +186,14 @@ export async function handleMcpToolCall(
       };
     }
 
-    case 'gitmem_context': {
+    case 'context': {
       const dump = await engines.context.getContextDump();
       return {
         content: [{ type: 'text', text: dump }]
       };
     }
 
-    case 'gitmem_task_create': {
+    case 'task_create': {
       const task = await engines.tasks.create({
         title: args.title,
         description: args.description,
@@ -209,7 +211,7 @@ export async function handleMcpToolCall(
       };
     }
 
-    case 'gitmem_task_claim': {
+    case 'task_claim': {
       const task = await engines.tasks.claim(args.taskId, args.agentName);
       return {
         content: [
@@ -221,7 +223,7 @@ export async function handleMcpToolCall(
       };
     }
 
-    case 'gitmem_task_complete': {
+    case 'task_complete': {
       const task = await engines.tasks.complete(args.taskId, args.outcome);
       return {
         content: [
@@ -233,7 +235,7 @@ export async function handleMcpToolCall(
       };
     }
 
-    case 'gitmem_task_list': {
+    case 'task_list': {
       const list = await engines.tasks.list({
         readyOnly: args.readyOnly,
         status: args.status

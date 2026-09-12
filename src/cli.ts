@@ -14,22 +14,23 @@ import { MemoryCategory } from './types/index.js';
 const program = new Command();
 
 program
-  .name('gitmem')
-  .description('🧠 Git-native persistent memory & task graph for AI coding agents')
+  .name('beadless')
+  .description('🧠 Git-native persistent memory & task graph for AI coding agents (Claude Code, Cursor, Antigravity)')
   .version('0.1.0');
 
 // init
 program
   .command('init')
-  .description('Initialize gitmem in the current repository and configure MCP clients')
+  .description('Initialize beadless in current repository and configure MCP clients')
   .option('--cursor', 'Generate .cursor/mcp.json configuration')
+  .option('--antigravity', 'Configure Google Antigravity MCP settings')
   .option('--claude', 'Print Claude Desktop MCP configuration')
   .action(async (opts) => {
     const cwd = process.cwd();
     const storage = new StorageManager(cwd);
     const git = new GitManager(cwd);
 
-    console.log(pc.cyan('\n🧠 Initializing gitmem...'));
+    console.log(pc.cyan('\n🧠 Initializing beadless...'));
 
     const isRepo = await git.isGitRepo();
     if (!isRepo) {
@@ -37,13 +38,13 @@ program
     }
 
     await storage.init();
-    console.log(pc.green('✔ Initialized .gitmem/ directory'));
-    console.log(pc.gray('  - .gitmem/config.json'));
-    console.log(pc.gray('  - .gitmem/memories.json & MEMORIES.md'));
-    console.log(pc.gray('  - .gitmem/tasks.json & TASKS.md'));
-    console.log(pc.gray('  - .gitmem/context.json'));
+    console.log(pc.green('✔ Initialized .beadless/ directory'));
+    console.log(pc.gray('  - .beadless/config.json'));
+    console.log(pc.gray('  - .beadless/memories.json & MEMORIES.md'));
+    console.log(pc.gray('  - .beadless/tasks.json & TASKS.md'));
+    console.log(pc.gray('  - .beadless/context.json'));
 
-    // Configure Cursor automatically if .cursor directory exists or --cursor requested
+    // 1. Configure Cursor if .cursor directory exists or --cursor requested
     const cursorDir = path.join(cwd, '.cursor');
     const cursorMcpPath = path.join(cursorDir, 'mcp.json');
     if (opts.cursor || existsSync(cursorDir)) {
@@ -55,20 +56,40 @@ program
         } catch {}
       }
       cursorMcp.mcpServers = cursorMcp.mcpServers || {};
-      cursorMcp.mcpServers.gitmem = {
+      cursorMcp.mcpServers.beadless = {
         command: 'npx',
-        args: ['-y', 'gitmem', 'mcp']
+        args: ['-y', 'beadless', 'mcp']
       };
       await fs.writeFile(cursorMcpPath, JSON.stringify(cursorMcp, null, 2), 'utf-8');
       console.log(pc.green('✔ Configured Cursor MCP (.cursor/mcp.json)'));
     }
 
+    // 2. Configure Antigravity / Gemini CLI if detected
+    const homeDir = process.env.USERPROFILE || process.env.HOME || '';
+    const antigravityDir = path.join(homeDir, '.gemini', 'antigravity');
+    const antigravityConfigPath = path.join(antigravityDir, 'mcp_config.json');
+    if (opts.antigravity || existsSync(antigravityDir)) {
+      try {
+        let agyConfig: any = { mcpServers: {} };
+        if (existsSync(antigravityConfigPath)) {
+          agyConfig = JSON.parse(await fs.readFile(antigravityConfigPath, 'utf-8'));
+        }
+        agyConfig.mcpServers = agyConfig.mcpServers || {};
+        agyConfig.mcpServers.beadless = {
+          command: 'npx',
+          args: ['-y', 'beadless', 'mcp']
+        };
+        await fs.writeFile(antigravityConfigPath, JSON.stringify(agyConfig, null, 2), 'utf-8');
+        console.log(pc.green('✔ Configured Google Antigravity MCP (~/.gemini/antigravity/mcp_config.json)'));
+      } catch {}
+    }
+
     console.log(pc.bold('\n🚀 Ready to supercharge your coding agents!'));
-    console.log(`Add to your ${pc.bold('Claude Code / Cursor / Windsurf')} MCP settings:`);
+    console.log(`Add to your ${pc.bold('Antigravity / Cursor / Claude Code / Windsurf')} MCP settings:`);
     console.log(pc.gray(JSON.stringify({
-      gitmem: {
+      beadless: {
         command: "npx",
-        args: ["-y", "gitmem", "mcp"]
+        args: ["-y", "beadless", "mcp"]
       }
     }, null, 2)));
     console.log('\n');
@@ -210,7 +231,7 @@ tasksCmd
 // mcp
 program
   .command('mcp')
-  .description('Run gitmem as an MCP stdio server')
+  .description('Run beadless as an MCP stdio server')
   .action(async () => {
     await runMcpServer();
   });
@@ -218,13 +239,13 @@ program
 // status
 program
   .command('status')
-  .description('Show gitmem repository status')
+  .description('Show beadless repository status')
   .action(async () => {
     const storage = new StorageManager();
     const git = new GitManager();
 
     if (!storage.isInitialized()) {
-      console.log(pc.yellow('gitmem is not initialized in this repo. Run: npx gitmem init'));
+      console.log(pc.yellow('beadless is not initialized in this repo. Run: npx beadless init'));
       return;
     }
 
@@ -233,7 +254,7 @@ program
     const tasks = await storage.readTasks();
     const config = await storage.readConfig();
 
-    console.log(pc.cyan('\n🧠 gitmem Status'));
+    console.log(pc.cyan('\n🧠 beadless Status'));
     console.log(pc.gray('===================================='));
     console.log(`Git Branch:     ${pc.bold(branch)}`);
     console.log(`Auto Commit:    ${config.autoCommit ? pc.green('ENABLED') : pc.gray('DISABLED')}`);

@@ -44,16 +44,16 @@ export class GitManager {
     }
   }
 
-  async autoCommit(message: string, prefix = 'chore(gitmem): '): Promise<string | null> {
+  async autoCommit(message: string, prefix = 'chore(beadless): '): Promise<string | null> {
     try {
       const isRepo = await this.isGitRepo();
       if (!isRepo) return null;
 
-      await this.git.add('.gitmem');
+      await this.git.add(['.beadless', '.gitmem']);
       const status = await this.git.status();
       
-      const hasGitMemChanges = status.staged.some(f => f.startsWith('.gitmem'));
-      if (!hasGitMemChanges) {
+      const hasChanges = status.staged.some(f => f.startsWith('.beadless') || f.startsWith('.gitmem'));
+      if (!hasChanges) {
         return null;
       }
 

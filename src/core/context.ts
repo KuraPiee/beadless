@@ -46,7 +46,7 @@ export class ContextEngine {
 
     const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
 
-    let out = `# 🧠 GitMem Context Briefing\n`;
+    let out = `# 🧠 Beadless Context Briefing\n`;
     out += `**Branch:** \`${branch}\` | **Updated:** ${new Date().toLocaleTimeString()}\n\n`;
 
     if (context.name || context.summary) {

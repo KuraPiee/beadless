@@ -1,13 +1,14 @@
-﻿{
-  "name": "gitmem",
+{
+  "name": "beadless",
   "version": "0.1.0",
-  "description": "Git-native persistent memory & task graph for AI coding agents (Claude Code, Cursor, Antigravity). The lightweight TypeScript MCP alternative to Beads.",
+  "description": "Git-native persistent memory & task graph for AI coding agents (Claude Code, Cursor, Antigravity). Zero Dolt. Zero Go. Pure TypeScript.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "gitmem": "./dist/cli.js"
+    "beadless": "dist/cli.js",
+    "gitmem": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -22,6 +23,8 @@
     "prepare": "pnpm build"
   },
   "keywords": [
+    "beadless",
+    "beads-alternative",
     "mcp",
     "mcp-server",
     "model-context-protocol",
@@ -29,20 +32,20 @@
     "ai-agent",
     "claude-code",
     "cursor",
+    "antigravity",
     "git-native",
-    "beads-alternative",
     "developer-tools"
   ],
   "author": "KuraPiee <eren@docwyrm.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/KuraPiee/gitmem.git"
+    "url": "git+https://github.com/KuraPiee/beadless.git"
   },
   "bugs": {
-    "url": "https://github.com/KuraPiee/gitmem/issues"
+    "url": "https://github.com/KuraPiee/beadless/issues"
   },
-  "homepage": "https://github.com/KuraPiee/gitmem#readme",
+  "homepage": "https://github.com/KuraPiee/beadless#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "commander": "^13.1.0",
@@ -52,6 +55,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@kwsites/file-exists": "^1.1.1",
     "@types/node": "^22.20.1",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",

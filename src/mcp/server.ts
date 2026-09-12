@@ -24,7 +24,7 @@ export async function runMcpServer(cwd: string = process.cwd()) {
 
   const server = new Server(
     {
-      name: 'gitmem',
+      name: 'beadless',
       version: '0.1.0'
     },
     {
@@ -50,7 +50,7 @@ export async function runMcpServer(cwd: string = process.cwd()) {
         content: [
           {
             type: 'text',
-            text: `gitmem error: ${error?.message || String(error)}`
+            text: `beadless error: ${error?.message || String(error)}`
           }
         ]
       };
@@ -61,7 +61,6 @@ export async function runMcpServer(cwd: string = process.cwd()) {
   await server.connect(transport);
 }
 
-// If directly executed via node/tsx
 if (process.argv[1]?.endsWith('server.js') || process.argv[1]?.endsWith('server.ts')) {
   runMcpServer().catch(err => {
     console.error('Fatal MCP Server error:', err);
