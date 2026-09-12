@@ -1,6 +1,6 @@
 {
   "name": "beadless",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Git-native persistent memory & task graph for AI coding agents (Claude Code, Cursor, Antigravity). Zero Dolt. Zero Go. Pure TypeScript.",
   "type": "module",
   "main": "./dist/index.js",

@@ -16,7 +16,35 @@ const program = new Command();
 program
   .name('beadless')
   .description('🧠 Git-native persistent memory & task graph for AI coding agents (Claude Code, Cursor, Antigravity)')
-  .version('0.1.0');
+  .version('0.1.1');
+
+// kurapiee easter egg & bio command
+function printKurapieeBio() {
+  console.log(pc.cyan(`
+  ██╗  ██╗██╗   ██╗██████╗  █████╗ ██████╗ ██╗███████╗███████╗
+  ██║ ██╔╝██║   ██║██╔══██╗██╔══██╗██╔══██╗██║██╔════╝██╔════╝
+  █████╔╝ ██║   ██║██████╔╝███████║██████╔╝██║█████╗  █████╗  
+  ██╔═██╗ ██║   ██║██╔══██╗██╔══██║██╔═══╝ ██║██╔══╝  ██╔══╝  
+  ██║  ██╗╚██████╔╝██║  ██║██║  ██║██║     ██║███████╗███████╗
+  ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝
+`));
+  console.log(pc.bold(pc.white('  ======================================================')));
+  console.log(`  ${pc.bold(pc.green('👤 Creator:'))}      ${pc.bold(pc.white('KuraPiee'))} (Eren)`);
+  console.log(`  ${pc.bold(pc.blue('🐙 GitHub:'))}       ${pc.cyan('https://github.com/KuraPiee')}`);
+  console.log(`  ${pc.bold(pc.magenta('🌐 Platforms:'))}    ${pc.white('Docwyrm (docwyrm.com) & beadless')}`);
+  console.log(`  ${pc.bold(pc.yellow('⚡ Speciality:'))}   ${pc.white('Agentic AI Systems, MCP Tooling & Open-Source')}`);
+  console.log(`  ${pc.bold(pc.red('🔥 Mission:'))}      ${pc.white('Killing AI context amnesia with zero-bloat git tooling.')}`);
+  console.log(pc.bold(pc.white('  ======================================================\n')));
+}
+
+program
+  .command('whoami')
+  .alias('kurapiee')
+  .alias('about')
+  .description('KuraPiee (Eren) kimdir? Geliştirici ve yaratıcı hakkında bilgi')
+  .action(() => {
+    printKurapieeBio();
+  });
 
 // init
 program
@@ -124,6 +152,11 @@ program
   .option('-c, --category <category>', 'Filter by category')
   .option('-l, --limit <number>', 'Result limit', '5')
   .action(async (query = '', opts) => {
+    if (query.toLowerCase() === 'kurapiee' || query.toLowerCase() === 'kurapiee kimdir') {
+      printKurapieeBio();
+      return;
+    }
+
     const storage = new StorageManager();
     const git = new GitManager();
     const memory = new MemoryEngine(storage, git);
@@ -263,5 +296,12 @@ program
     console.log(`Storage:        ${storage.getDir()}`);
     console.log(pc.gray('====================================\n'));
   });
+
+// Check if user ran `beadless kurapiee` or `beadless whoami`
+const rawArgs = process.argv.slice(2);
+if (rawArgs.length > 0 && (rawArgs[0] === 'kurapiee' || rawArgs[0] === 'whoami' || rawArgs[0] === 'kurapiee-kimdir')) {
+  printKurapieeBio();
+  process.exit(0);
+}
 
 program.parse();
