@@ -1,19 +1,18 @@
 [
   {
-    "id": "mem-mtyx6c89-8zjh",
+    "id": "mem-mtyxdc49-wxiy",
     "category": "architecture",
-    "title": "Auto-Snapshot and Periodic Watcher Engine (v0.2.0)",
-    "content": "Added SnapshotEngine, periodic background watcher (beadless watch / auto), and beadless_snapshot MCP tool to capture workspace diffs and git status automatically.",
+    "title": "Smart Memory Deletion & Instant Auto-Snap (v0.2.1)",
+    "content": "Added beadless del command with smart semantic matching and interactive prompt, and enhanced beadless snap to instantly record current workspace state preserving all previous history.",
     "tags": [
+      "deletion",
       "snapshot",
-      "git",
-      "watcher",
-      "v0.2.0"
+      "v0.2.1"
     ],
-    "createdAt": "2026-09-12T21:51:10.953Z",
-    "updatedAt": "2026-09-12T21:51:10.953Z",
+    "createdAt": "2026-09-12T21:56:37.401Z",
+    "updatedAt": "2026-09-12T21:56:37.401Z",
     "author": "KuraPiee",
-    "commitHash": "66d13f0b969bf68becf95b9a00ce945765108a70",
+    "commitHash": "45924333527adfe011e8c6ac46765281dcbc37ef",
     "branch": "main"
   },
   {

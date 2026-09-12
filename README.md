@@ -91,6 +91,7 @@ When attached to an agent, `beadless` exposes these standard MCP tools:
 - `beadless_snapshot`: Captures the current workspace state, modified/untracked files, and branch status into persistent memory.
 - `beadless_remember`: Records an architectural decision, lesson, or preference.
 - `beadless_recall`: Fuzzy-searches past decisions and gotchas to avoid repeating mistakes.
+- `beadless_delete`: Removes a memory entry by ID or semantic description.
 - `beadless_task_create`: Adds a task with dependency tracking (`blockedBy: ["task-1"]`).
 - `beadless_task_claim`: Claims a task for the active agent session.
 - `beadless_task_complete`: Marks task complete and automatically unblocks downstream tasks.
@@ -110,13 +111,25 @@ npx beadless remember "Use Argon2 for password hashing" \
   --tags auth security
 ```
 
-### Snapshot Workspace State
+### Snapshot Workspace State (Auto-Recording)
 ```bash
-# Capture immediate snapshot of modified files & working tree state
-npx beadless snapshot "Completed authentication and cookies"
+# Capture immediate snapshot with automatic title and timestamp (keeps all old memories!)
+npx beadless snap
 
-# Force snapshot even on clean workspace
-npx beadless snapshot --force
+# Custom snapshot title with description
+npx beadless snap "Completed authentication and cookies"
+```
+
+### 🗑️ Delete / Forget Memories
+```bash
+# Interactive list of recent memories
+npx beadless del
+
+# Delete by exact ID
+npx beadless del mem-1234
+
+# Smart semantic deletion (understands what you mean and deletes matching memory)
+npx beadless del "eski veritabanı kararı"
 ```
 
 ### ⏱️ Automatic Periodic Auto-Recorder (Watcher)

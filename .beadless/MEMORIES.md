@@ -13,10 +13,10 @@ Always sync MEMORIES.md and TASKS.md alongside JSON so developers can review dec
 
 ## ARCHITECTURES (2)
 
-### Auto-Snapshot and Periodic Watcher Engine (v0.2.0)
-*Added: 13.09.2026 | Author: KuraPiee | Tags: snapshot, git, watcher, v0.2.0*
+### Smart Memory Deletion & Instant Auto-Snap (v0.2.1)
+*Added: 13.09.2026 | Author: KuraPiee | Tags: deletion, snapshot, v0.2.1*
 
-Added SnapshotEngine, periodic background watcher (beadless watch / auto), and beadless_snapshot MCP tool to capture workspace diffs and git status automatically.
+Added beadless del command with smart semantic matching and interactive prompt, and enhanced beadless snap to instantly record current workspace state preserving all previous history.
 
 ---
 

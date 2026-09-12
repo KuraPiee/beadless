@@ -17,7 +17,7 @@ const program = new Command();
 program
   .name('beadless')
   .description('🧠 Git-native persistent memory & task graph for AI coding agents (Claude Code, Cursor, Antigravity)')
-  .version('0.2.0');
+  .version('0.2.1');
 
 // kurapiee easter egg & bio command
 function printKurapieeBio() {
@@ -264,31 +264,93 @@ tasksCmd
 
 // snapshot
 program
-  .command('snapshot [title]')
+  .command('snapshot [title...]')
   .alias('snap')
   .description('Record an immediate snapshot of workspace changes and git status into memory')
   .option('-m, --message <message>', 'Detailed description of changes or focus')
   .option('-c, --category <category>', 'Memory category (context, architecture, lesson, decision)', 'context')
-  .option('-f, --force', 'Record snapshot even if working tree is clean')
-  .action(async (title, opts) => {
+  .option('-f, --force', 'Force snapshot even if working tree is clean')
+  .action(async (titleParts, opts) => {
     const storage = new StorageManager();
     const git = new GitManager();
     const memory = new MemoryEngine(storage, git);
     const snapshot = new SnapshotEngine(storage, git, memory);
 
+    const title = Array.isArray(titleParts) && titleParts.length > 0 ? titleParts.join(' ').trim() : undefined;
+
     const res = await snapshot.takeSnapshot({
       title,
       message: opts.message,
       category: opts.category as MemoryCategory,
-      force: opts.force
+      force: true
     });
 
     if (!res) {
-      console.log(pc.yellow('Working tree is clean. No snapshot recorded (use --force to snapshot anyway).'));
+      console.log(pc.yellow('Working tree is clean. No snapshot recorded.'));
       return;
     }
 
-    console.log(pc.green(`✔ Snapshot recorded: ${pc.bold(`[${res.entry.id}]`)} "${res.entry.title}" (${res.summary})`));
+    console.log(pc.green(`✔ Anlık kayıt alındı: ${pc.bold(`[${res.entry.id}]`)} "${res.entry.title}" (${res.summary})`));
+    console.log(pc.gray('  Eski kayıtlar korundu. (.beadless/memories.json güncellendi)'));
+  });
+
+// delete / del / forget
+program
+  .command('del [queryOrId...]')
+  .alias('delete')
+  .alias('rm')
+  .alias('forget')
+  .description('Delete a memory entry by ID or by describing what to delete (smart matching)')
+  .option('-f, --force', 'Force delete first match if multiple found')
+  .action(async (args, opts) => {
+    const storage = new StorageManager();
+    const git = new GitManager();
+    const memory = new MemoryEngine(storage, git);
+
+    const input = Array.isArray(args) && args.length > 0 ? args.join(' ').trim() : '';
+
+    if (!input) {
+      const recent = await memory.list(undefined, 8);
+      console.log(pc.cyan('\n🗑️ beadless Kayıt Silme'));
+      console.log(pc.gray('===================================='));
+      if (recent.length === 0) {
+        console.log(pc.yellow('Hafızada kayıtlı hiçbir bellek bulunmuyor.'));
+        return;
+      }
+      console.log(pc.white('Silmek istediğin kaydın ID\'sini veya anlatımını belirt:'));
+      console.log(pc.gray('Örnek: ') + pc.yellow('beadless del <ID>') + pc.gray(' veya ') + pc.yellow('beadless del "eski db kararı"') + '\n');
+      console.log(pc.bold('Mevcut Son Kayıtlar:'));
+      for (const m of recent) {
+        console.log(`- ${pc.magenta(`[${m.id}]`)} ${pc.bold(m.title)} ${pc.gray(`(${m.category}, ${new Date(m.createdAt).toLocaleDateString()})`)}`);
+      }
+      console.log(pc.gray('====================================\n'));
+      return;
+    }
+
+    const res = await memory.deleteByQueryOrId(input);
+    if (res.success && res.deleted) {
+      console.log(pc.green(`✔ Silindi: ${pc.bold(`[${res.deleted.id}]`)} "${res.deleted.title}"`));
+      if (res.deleted.content) {
+        console.log(pc.gray(`  Açıklama: ${res.deleted.content.slice(0, 100)}...`));
+      }
+    } else {
+      if (res.matches && res.matches.length > 1) {
+        if (opts.force) {
+          const target = res.matches[0];
+          await memory.delete(target.id);
+          console.log(pc.green(`✔ (--force) En iyi eşleşen silindi: ${pc.bold(`[${target.id}]`)} "${target.title}"`));
+          return;
+        }
+        console.log(pc.yellow(`\n⚠️  "${input}" ifadesiyle birden fazla (${res.matches.length}) kayıt eşleşti:`));
+        for (const m of res.matches) {
+          console.log(`  - ${pc.magenta(`[${m.id}]`)} ${pc.bold(m.title)} ${pc.gray(`(${m.category})`)}`);
+        }
+        console.log(pc.cyan('\nSilmek istediğin kaydın tam ID\'sini yaz:'));
+        console.log(pc.white(`  beadless del ${res.matches[0].id}\n`));
+      } else {
+        console.log(pc.red(`❌ ${res.message}`));
+      }
+    }
   });
 
 // watch / auto periodic recorder

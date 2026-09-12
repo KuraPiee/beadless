@@ -1,4 +1,4 @@
-﻿import Fuse from 'fuse.js';
+import Fuse from 'fuse.js';
 import { StorageManager } from './storage.js';
 import { GitManager } from './git.js';
 import { MemoryEntry, MemoryCategory } from '../types/index.js';
@@ -109,5 +109,74 @@ export class MemoryEngine {
       await this.git.autoCommit(`forget: ${id}`, config.commitPrefix);
     }
     return true;
+  }
+
+  async deleteByQueryOrId(queryOrId: string): Promise<{
+    success: boolean;
+    deleted?: MemoryEntry;
+    matches?: MemoryEntry[];
+    message: string;
+  }> {
+    const trimmed = queryOrId.trim();
+    if (!trimmed) {
+      return { success: false, message: 'Silinecek bir ID veya arama ifadesi belirtilmedi.' };
+    }
+
+    const memories = await this.storage.readMemories();
+
+    // 1. Direct ID match
+    const exactIndex = memories.findIndex(m => m.id.toLowerCase() === trimmed.toLowerCase());
+    if (exactIndex !== -1) {
+      const deleted = memories[exactIndex];
+      memories.splice(exactIndex, 1);
+      await this.storage.writeMemories(memories);
+
+      const config = await this.storage.readConfig();
+      if (config.autoCommit) {
+        await this.git.autoCommit(`forget: ${deleted.id} - ${deleted.title}`, config.commitPrefix);
+      }
+      return {
+        success: true,
+        deleted,
+        message: `Silindi [${deleted.id}]: "${deleted.title}"`
+      };
+    }
+
+    // 2. Fuzzy search / semantic matching
+    const matches = await this.recall(trimmed, { limit: 5 });
+    if (matches.length === 0) {
+      return {
+        success: false,
+        matches: [],
+        message: `"${trimmed}" ifadesiyle eşleşen herhangi bir kayıt bulunamadı.`
+      };
+    }
+
+    if (matches.length === 1) {
+      const targetId = matches[0].id;
+      const idx = memories.findIndex(m => m.id === targetId);
+      if (idx !== -1) {
+        const deleted = memories[idx];
+        memories.splice(idx, 1);
+        await this.storage.writeMemories(memories);
+
+        const config = await this.storage.readConfig();
+        if (config.autoCommit) {
+          await this.git.autoCommit(`forget: ${deleted.id} - ${deleted.title}`, config.commitPrefix);
+        }
+        return {
+          success: true,
+          deleted,
+          message: `Eşleşen kayıt silindi: [${deleted.id}] "${deleted.title}"`
+        };
+      }
+    }
+
+    // Multiple matches
+    return {
+      success: false,
+      matches,
+      message: `"${trimmed}" ifadesiyle ${matches.length} farklı kayıt eşleşti. Lütfen silmek istediğin kaydın ID'sini belirt.`
+    };
   }
 }

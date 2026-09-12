@@ -11,7 +11,7 @@ import { handleMcpToolCall } from '../src/mcp/tools.js';
 
 const TEST_DIR = path.join(process.cwd(), 'tests', 'sandbox_snapshot');
 
-describe('SnapshotEngine & Auto-Recorder', () => {
+describe('SnapshotEngine & Smart Deletion', () => {
   let storage: StorageManager;
   let git: GitManager;
   let memory: MemoryEngine;
@@ -34,20 +34,23 @@ describe('SnapshotEngine & Auto-Recorder', () => {
     await fs.rm(TEST_DIR, { recursive: true, force: true });
   });
 
-  it('records a snapshot when force is enabled or title is given', async () => {
-    const res = await snapshot.takeSnapshot({
-      title: 'Manual Test Snapshot',
-      message: 'Initial state before refactor',
-      force: true
+  it('records a snapshot without title and preserves previous memories', async () => {
+    // 1. Initial memory
+    const m1 = await memory.remember({
+      category: 'decision',
+      title: 'Initial Architecture Decision',
+      content: 'Core layout using modules'
     });
 
-    expect(res).not.toBeNull();
-    expect(res?.entry.title).toBe('Manual Test Snapshot');
-    expect(res?.entry.tags).toContain('snapshot');
+    // 2. Take automatic snapshot
+    const snap = await snapshot.takeSnapshot();
+    expect(snap).not.toBeNull();
+    expect(snap?.entry.tags).toContain('snapshot');
 
-    const memories = await memory.recall('Manual Test');
-    expect(memories.length).toBeGreaterThan(0);
-    expect(memories[0].content).toContain('Initial state before refactor');
+    // 3. Ensure previous memory was NOT deleted
+    const all = await memory.list();
+    expect(all.length).toBe(2);
+    expect(all.some(m => m.id === m1.id)).toBe(true);
   });
 
   it('executes beadless_snapshot MCP tool call cleanly', async () => {
@@ -64,14 +67,55 @@ describe('SnapshotEngine & Auto-Recorder', () => {
     expect(list.some(m => m.title === 'MCP Snapshot Milestone 1')).toBe(true);
   });
 
+  it('deletes by exact ID cleanly', async () => {
+    const m = await memory.remember({
+      category: 'lesson',
+      title: 'Temporary Bug In SQLite Driver',
+      content: 'Fixed by updating bindings'
+    });
+
+    const delRes = await memory.deleteByQueryOrId(m.id);
+    expect(delRes.success).toBe(true);
+    expect(delRes.deleted?.id).toBe(m.id);
+
+    const list = await memory.list();
+    expect(list.some(item => item.id === m.id)).toBe(false);
+  });
+
+  it('deletes by semantic query / description cleanly', async () => {
+    await memory.remember({
+      category: 'decision',
+      title: 'Use Redis for Session Storage',
+      content: 'Redis memory store provides sub-millisecond lookups.'
+    });
+
+    // Delete by saying what to delete
+    const delRes = await memory.deleteByQueryOrId('Redis session storage');
+    expect(delRes.success).toBe(true);
+    expect(delRes.deleted?.title).toContain('Redis');
+
+    const check = await memory.recall('Redis');
+    expect(check.length).toBe(0);
+  });
+
+  it('executes beadless_delete MCP tool call cleanly', async () => {
+    const target = await memory.remember({
+      category: 'architecture',
+      title: 'Kafka event queue setup',
+      content: 'Distributed message log.'
+    });
+
+    const res = await handleMcpToolCall('beadless_delete', {
+      queryOrId: target.id
+    }, { memory, tasks, context, snapshot });
+
+    expect(res.content[0].text).toContain('Silindi');
+  });
+
   it('watcher starts and can be stopped cleanly', async () => {
-    let snapshotCount = 0;
     const watcher = snapshot.startWatcher({
       intervalMinutes: 1,
-      minChanges: 1,
-      onSnapshot: () => {
-        snapshotCount++;
-      }
+      minChanges: 1
     });
 
     expect(watcher.isRunning()).toBe(true);

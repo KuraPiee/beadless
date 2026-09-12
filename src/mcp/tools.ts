@@ -84,6 +84,20 @@ export function getMcpToolsDefinition() {
       }
     },
     {
+      name: 'beadless_delete',
+      description: 'Delete a memory entry by ID (e.g. "mem-1234") or by descriptive search query.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          queryOrId: {
+            type: 'string',
+            description: 'Memory ID (e.g. "mem-mtyx...") or descriptive search query of what to delete'
+          }
+        },
+        required: ['queryOrId']
+      }
+    },
+    {
       name: 'beadless_context',
       description: 'Retrieve the project context briefing, including architecture overview, conventions, critical lessons, and active task queue. Call this at the start of an agent session.',
       inputSchema: {
@@ -241,6 +255,26 @@ export async function handleMcpToolCall(
 
       return {
         content: [{ type: 'text', text: formatted }]
+      };
+    }
+
+    case 'del':
+    case 'delete':
+    case 'forget': {
+      const res = await engines.memory.deleteByQueryOrId(args.queryOrId);
+      if (!res.success) {
+        if (res.matches && res.matches.length > 1) {
+          const list = res.matches.map(m => `- [${m.id}] ${m.title} (${m.category})`).join('\n');
+          return {
+            content: [{ type: 'text', text: `${res.message}\n${list}` }]
+          };
+        }
+        return {
+          content: [{ type: 'text', text: res.message }]
+        };
+      }
+      return {
+        content: [{ type: 'text', text: `✔ ${res.message}` }]
       };
     }
 

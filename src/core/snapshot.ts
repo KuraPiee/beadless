@@ -1,4 +1,4 @@
-﻿import { StorageManager } from './storage.js';
+import { StorageManager } from './storage.js';
 import { GitManager } from './git.js';
 import { MemoryEngine } from './memory.js';
 import { MemoryCategory, MemoryEntry, SnapshotResult, GitStatusSummary } from '../types/index.js';
@@ -50,14 +50,15 @@ export class SnapshotEngine {
     const uniqueChanged = Array.from(new Set(changedFiles));
     const isClean = !status || uniqueChanged.length === 0;
 
-    if (isClean && !options.force && !options.title) {
+    if (isClean && options.force === false && !options.title) {
       return null;
     }
 
+    const nowStr = new Date().toLocaleTimeString();
     const title = options.title || 
       (uniqueChanged.length > 0 
-        ? `Snapshot: ${uniqueChanged.length} file(s) changed on [${branch}]`
-        : `Snapshot: Clean workspace state on [${branch}]`);
+        ? `Snapshot: ${uniqueChanged.length} file(s) active on [${branch}] (${nowStr})`
+        : `Snapshot: Clean workspace state on [${branch}] (${nowStr})`);
 
     const contentLines: string[] = [];
     if (options.message) {
