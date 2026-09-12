@@ -1,0 +1,60 @@
+﻿{
+  "name": "gitmem",
+  "version": "0.1.0",
+  "description": "Git-native persistent memory & task graph for AI coding agents (Claude Code, Cursor, Antigravity). The lightweight TypeScript MCP alternative to Beads.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "gitmem": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepare": "pnpm build"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "agent-memory",
+    "ai-agent",
+    "claude-code",
+    "cursor",
+    "git-native",
+    "beads-alternative",
+    "developer-tools"
+  ],
+  "author": "KuraPiee <eren@docwyrm.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KuraPiee/gitmem.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KuraPiee/gitmem/issues"
+  },
+  "homepage": "https://github.com/KuraPiee/gitmem#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "commander": "^13.1.0",
+    "fuse.js": "^7.5.0",
+    "picocolors": "^1.1.1",
+    "simple-git": "^3.36.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}
