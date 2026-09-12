@@ -1,4 +1,4 @@
-﻿export type MemoryCategory = 'decision' | 'lesson' | 'architecture' | 'context' | 'preference';
+export type MemoryCategory = 'decision' | 'lesson' | 'architecture' | 'context' | 'preference';
 
 export interface MemoryEntry {
   id: string;
@@ -43,11 +43,32 @@ export interface ProjectContext {
   updatedAt?: string;
 }
 
+export interface GitStatusSummary {
+  isClean: boolean;
+  modified: string[];
+  notAdded: string[];
+  created: string[];
+  deleted: string[];
+  staged: string[];
+  currentBranch: string;
+}
+
+export interface SnapshotResult {
+  entry: MemoryEntry;
+  changesCount: number;
+  summary: string;
+}
+
 export interface BeadlessConfig {
   version: string;
   autoCommit: boolean;
   commitPrefix: string;
   branchAware: boolean;
   maxRecentDecisions: number;
+  autoSnapshot?: {
+    enabled: boolean;
+    intervalMinutes: number;
+  };
 }
 export type GitMemConfig = BeadlessConfig;
+

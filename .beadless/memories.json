@@ -1,5 +1,22 @@
 [
   {
+    "id": "mem-mtyx6c89-8zjh",
+    "category": "architecture",
+    "title": "Auto-Snapshot and Periodic Watcher Engine (v0.2.0)",
+    "content": "Added SnapshotEngine, periodic background watcher (beadless watch / auto), and beadless_snapshot MCP tool to capture workspace diffs and git status automatically.",
+    "tags": [
+      "snapshot",
+      "git",
+      "watcher",
+      "v0.2.0"
+    ],
+    "createdAt": "2026-09-12T21:51:10.953Z",
+    "updatedAt": "2026-09-12T21:51:10.953Z",
+    "author": "KuraPiee",
+    "commitHash": "66d13f0b969bf68becf95b9a00ce945765108a70",
+    "branch": "main"
+  },
+  {
     "id": "mem-mtyoc60o-8cxu",
     "category": "decision",
     "title": "Auto-sync human-readable Markdown",

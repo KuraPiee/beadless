@@ -1,4 +1,4 @@
-﻿import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema,
@@ -9,6 +9,7 @@ import { GitManager } from '../core/git.js';
 import { MemoryEngine } from '../core/memory.js';
 import { TaskEngine } from '../core/tasks.js';
 import { ContextEngine } from '../core/context.js';
+import { SnapshotEngine } from '../core/snapshot.js';
 import { getMcpToolsDefinition, handleMcpToolCall } from './tools.js';
 
 export async function runMcpServer(cwd: string = process.cwd()) {
@@ -21,11 +22,12 @@ export async function runMcpServer(cwd: string = process.cwd()) {
   const memory = new MemoryEngine(storage, git);
   const tasks = new TaskEngine(storage, git);
   const context = new ContextEngine(storage, git);
+  const snapshot = new SnapshotEngine(storage, git, memory);
 
   const server = new Server(
     {
       name: 'beadless',
-      version: '0.1.0'
+      version: '0.2.0'
     },
     {
       capabilities: {
@@ -43,7 +45,7 @@ export async function runMcpServer(cwd: string = process.cwd()) {
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
     try {
-      return await handleMcpToolCall(name, args || {}, { memory, tasks, context });
+      return await handleMcpToolCall(name, args || {}, { memory, tasks, context, snapshot });
     } catch (error: any) {
       return {
         isError: true,

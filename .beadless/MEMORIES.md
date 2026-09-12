@@ -11,7 +11,14 @@ Always sync MEMORIES.md and TASKS.md alongside JSON so developers can review dec
 
 ---
 
-## ARCHITECTURES (1)
+## ARCHITECTURES (2)
+
+### Auto-Snapshot and Periodic Watcher Engine (v0.2.0)
+*Added: 13.09.2026 | Author: KuraPiee | Tags: snapshot, git, watcher, v0.2.0*
+
+Added SnapshotEngine, periodic background watcher (beadless watch / auto), and beadless_snapshot MCP tool to capture workspace diffs and git status automatically.
+
+---
 
 ### Zero-Dolt, pure TypeScript agent memory
 *Added: 12.09.2026 | Author: KuraPiee | Tags: architecture, mcp*

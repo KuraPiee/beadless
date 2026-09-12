@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <h1 align="center">🧠 beadless</h1>
   <p align="center"><strong>Git-native persistent memory & task graph for AI coding agents.</strong></p>
   <p align="center">The lightweight, TypeScript-native alternative to Beads. Zero Dolt. Zero Go. Just pure git.</p>
@@ -88,6 +88,7 @@ Add this to your MCP configuration (`.cursor/mcp.json` or settings):
 When attached to an agent, `beadless` exposes these standard MCP tools:
 
 - `beadless_context`: Dumps instant project briefing (tech stack, conventions, critical gotchas, and top unblocked tasks).
+- `beadless_snapshot`: Captures the current workspace state, modified/untracked files, and branch status into persistent memory.
 - `beadless_remember`: Records an architectural decision, lesson, or preference.
 - `beadless_recall`: Fuzzy-searches past decisions and gotchas to avoid repeating mistakes.
 - `beadless_task_create`: Adds a task with dependency tracking (`blockedBy: ["task-1"]`).
@@ -107,6 +108,24 @@ npx beadless remember "Use Argon2 for password hashing" \
   --category decision \
   --message "Argon2id is memory-hard and prevents ASIC/GPU attacks." \
   --tags auth security
+```
+
+### Snapshot Workspace State
+```bash
+# Capture immediate snapshot of modified files & working tree state
+npx beadless snapshot "Completed authentication and cookies"
+
+# Force snapshot even on clean workspace
+npx beadless snapshot --force
+```
+
+### ⏱️ Automatic Periodic Auto-Recorder (Watcher)
+```bash
+# Automatically records changes every 10 minutes (default)
+npx beadless watch
+
+# Custom interval (every 5 minutes, triggers on >= 2 modified files)
+npx beadless auto --interval 5 --min-changes 2 --immediate
 ```
 
 ### Recall Memories

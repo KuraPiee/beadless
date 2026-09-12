@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs/promises';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { BeadlessConfig, MemoryEntry, TaskItem, ProjectContext } from '../types/index.js';
@@ -70,13 +70,21 @@ export class StorageManager {
 
   async readConfig(): Promise<BeadlessConfig> {
     const defaultCfg: BeadlessConfig = {
-      version: '0.1.0',
+      version: '0.2.0',
       autoCommit: true,
       commitPrefix: 'chore(beadless): ',
       branchAware: true,
-      maxRecentDecisions: 10
+      maxRecentDecisions: 10,
+      autoSnapshot: {
+        enabled: false,
+        intervalMinutes: 10
+      }
     };
     return await this.readJson<BeadlessConfig>('config.json', defaultCfg);
+  }
+
+  async writeConfig(config: BeadlessConfig): Promise<void> {
+    await this.writeJson('config.json', config);
   }
 
   async readMemories(): Promise<MemoryEntry[]> {

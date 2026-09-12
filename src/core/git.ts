@@ -1,4 +1,5 @@
-﻿import { simpleGit, SimpleGit } from 'simple-git';
+import { simpleGit, SimpleGit } from 'simple-git';
+import { GitStatusSummary } from '../types/index.js';
 
 export class GitManager {
   private git: SimpleGit;
@@ -44,6 +45,25 @@ export class GitManager {
     }
   }
 
+  async getStatus(): Promise<GitStatusSummary | null> {
+    try {
+      const isRepo = await this.isGitRepo();
+      if (!isRepo) return null;
+      const status = await this.git.status();
+      return {
+        isClean: status.isClean(),
+        modified: status.modified,
+        notAdded: status.not_added,
+        created: status.created,
+        deleted: status.deleted,
+        staged: status.staged,
+        currentBranch: status.current || 'main'
+      };
+    } catch {
+      return null;
+    }
+  }
+
   async autoCommit(message: string, prefix = 'chore(beadless): '): Promise<string | null> {
     try {
       const isRepo = await this.isGitRepo();
@@ -64,3 +84,4 @@ export class GitManager {
     }
   }
 }
+

@@ -1,6 +1,7 @@
-﻿import { MemoryEngine } from '../core/memory.js';
+import { MemoryEngine } from '../core/memory.js';
 import { TaskEngine } from '../core/tasks.js';
 import { ContextEngine } from '../core/context.js';
+import { SnapshotEngine } from '../core/snapshot.js';
 import { MemoryCategory } from '../types/index.js';
 
 export function getMcpToolsDefinition() {
@@ -31,6 +32,32 @@ export function getMcpToolsDefinition() {
           }
         },
         required: ['category', 'title', 'content']
+      }
+    },
+    {
+      name: 'beadless_snapshot',
+      description: 'Capture a snapshot of the current workspace state, modified/untracked files, and git status into persistent memory.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            description: 'Optional custom title for the snapshot'
+          },
+          message: {
+            type: 'string',
+            description: 'Optional note or summary of changes completed'
+          },
+          category: {
+            type: 'string',
+            enum: ['decision', 'lesson', 'architecture', 'context', 'preference'],
+            description: 'Memory category (default: context)'
+          },
+          force: {
+            type: 'boolean',
+            description: 'Force snapshot even if working tree is clean'
+          }
+        }
       }
     },
     {
@@ -136,12 +163,43 @@ export async function handleMcpToolCall(
     memory: MemoryEngine;
     tasks: TaskEngine;
     context: ContextEngine;
+    snapshot?: SnapshotEngine;
   }
 ) {
   // Normalize beadless_ or gitmem_ prefixes
   const normalized = name.replace(/^(beadless|gitmem)_/, '');
 
   switch (normalized) {
+    case 'snapshot': {
+      if (!engines.snapshot) {
+        throw new Error('SnapshotEngine is not configured.');
+      }
+      const res = await engines.snapshot.takeSnapshot({
+        title: args.title,
+        message: args.message,
+        category: args.category as MemoryCategory,
+        force: args.force
+      });
+      if (!res) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: 'Workspace is clean. No snapshot was taken (pass force: true to snapshot clean state).'
+            }
+          ]
+        };
+      }
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Snapshot recorded [${res.entry.id}]: "${res.entry.title}" (${res.summary})`
+          }
+        ]
+      };
+    }
+
     case 'remember': {
       const entry = await engines.memory.remember({
         category: args.category as MemoryCategory,

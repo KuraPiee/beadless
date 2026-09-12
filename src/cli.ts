@@ -1,4 +1,4 @@
-﻿import { Command } from 'commander';
+import { Command } from 'commander';
 import pc from 'picocolors';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -8,6 +8,7 @@ import { GitManager } from './core/git.js';
 import { MemoryEngine } from './core/memory.js';
 import { TaskEngine } from './core/tasks.js';
 import { ContextEngine } from './core/context.js';
+import { SnapshotEngine } from './core/snapshot.js';
 import { runMcpServer } from './mcp/server.js';
 import { MemoryCategory } from './types/index.js';
 
@@ -16,7 +17,7 @@ const program = new Command();
 program
   .name('beadless')
   .description('🧠 Git-native persistent memory & task graph for AI coding agents (Claude Code, Cursor, Antigravity)')
-  .version('0.1.1');
+  .version('0.2.0');
 
 // kurapiee easter egg & bio command
 function printKurapieeBio() {
@@ -259,6 +260,79 @@ tasksCmd
 
     const task = await tasks.complete(taskId, opts.outcome);
     console.log(pc.green(`✔ Marked [${task.id}] completed! Downstream tasks re-evaluated.`));
+  });
+
+// snapshot
+program
+  .command('snapshot [title]')
+  .alias('snap')
+  .description('Record an immediate snapshot of workspace changes and git status into memory')
+  .option('-m, --message <message>', 'Detailed description of changes or focus')
+  .option('-c, --category <category>', 'Memory category (context, architecture, lesson, decision)', 'context')
+  .option('-f, --force', 'Record snapshot even if working tree is clean')
+  .action(async (title, opts) => {
+    const storage = new StorageManager();
+    const git = new GitManager();
+    const memory = new MemoryEngine(storage, git);
+    const snapshot = new SnapshotEngine(storage, git, memory);
+
+    const res = await snapshot.takeSnapshot({
+      title,
+      message: opts.message,
+      category: opts.category as MemoryCategory,
+      force: opts.force
+    });
+
+    if (!res) {
+      console.log(pc.yellow('Working tree is clean. No snapshot recorded (use --force to snapshot anyway).'));
+      return;
+    }
+
+    console.log(pc.green(`✔ Snapshot recorded: ${pc.bold(`[${res.entry.id}]`)} "${res.entry.title}" (${res.summary})`));
+  });
+
+// watch / auto periodic recorder
+program
+  .command('watch')
+  .alias('auto')
+  .description('Start periodic auto-snapshot watcher to continuously record repository changes')
+  .option('-i, --interval <minutes>', 'Interval in minutes between auto-snapshots', '10')
+  .option('-m, --min-changes <number>', 'Minimum changed files required to trigger a snapshot', '1')
+  .option('--immediate', 'Take an immediate snapshot on start', false)
+  .action(async (opts) => {
+    const storage = new StorageManager();
+    const git = new GitManager();
+    const memory = new MemoryEngine(storage, git);
+    const snapshot = new SnapshotEngine(storage, git, memory);
+
+    const intervalMinutes = parseFloat(opts.interval) || 10;
+    const minChanges = parseInt(opts.minChanges, 10) || 1;
+
+    console.log(pc.cyan('\n🧠 beadless Auto-Snapshot Watcher'));
+    console.log(pc.gray('===================================='));
+    console.log(`Interval:    ${pc.bold(`Every ${intervalMinutes} minute(s)`)}`);
+    console.log(`Min changes: ${pc.bold(minChanges.toString())} file(s)`);
+    console.log(`Storage:     ${storage.getDir()}`);
+    console.log(pc.gray('Auto-recording active. Press Ctrl+C to stop.\n'));
+
+    const watcher = snapshot.startWatcher({
+      intervalMinutes,
+      immediate: opts.immediate,
+      minChanges,
+      onSnapshot: (res) => {
+        const time = new Date().toLocaleTimeString();
+        console.log(`[${pc.gray(time)}] ${pc.green('✔ Auto-Snapshot:')} ${pc.bold(res.entry.title)} ${pc.gray(`(${res.entry.id}, ${res.summary})`)}`);
+      },
+      onError: (err) => {
+        console.error(pc.red(`⚠️  Watcher error: ${err?.message || err}`));
+      }
+    });
+
+    process.on('SIGINT', () => {
+      console.log(pc.yellow('\nStopping auto-snapshot watcher...'));
+      watcher.stop();
+      process.exit(0);
+    });
   });
 
 // mcp
