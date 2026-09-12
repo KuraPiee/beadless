@@ -1,0 +1,32 @@
+[
+  {
+    "id": "mem-mtyoc60o-8cxu",
+    "category": "decision",
+    "title": "Auto-sync human-readable Markdown",
+    "content": "Always sync MEMORIES.md and TASKS.md alongside JSON so developers can review decisions in Git and PRs.",
+    "tags": [
+      "git",
+      "markdown"
+    ],
+    "createdAt": "2026-09-12T17:43:46.296Z",
+    "updatedAt": "2026-09-12T17:43:46.296Z",
+    "author": "KuraPiee",
+    "commitHash": "d193518ced5950e77bfc41f30536162a4f02598d",
+    "branch": "main"
+  },
+  {
+    "id": "mem-mtyoc5nb-bu9n",
+    "category": "architecture",
+    "title": "Zero-Dolt, pure TypeScript agent memory",
+    "content": "Built as a lightweight TypeScript MCP alternative to Beads without Go or Dolt dependencies.",
+    "tags": [
+      "architecture",
+      "mcp"
+    ],
+    "createdAt": "2026-09-12T17:43:45.815Z",
+    "updatedAt": "2026-09-12T17:43:45.815Z",
+    "author": "KuraPiee",
+    "commitHash": "d193518ced5950e77bfc41f30536162a4f02598d",
+    "branch": "main"
+  }
+]
