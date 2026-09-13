@@ -2,6 +2,8 @@ import { MemoryEngine } from '../core/memory.js';
 import { TaskEngine } from '../core/tasks.js';
 import { ContextEngine } from '../core/context.js';
 import { SnapshotEngine } from '../core/snapshot.js';
+import { ChatEngine } from '../core/chat.js';
+import { GlobalEngine } from '../core/global.js';
 import { MemoryCategory } from '../types/index.js';
 
 export function getMcpToolsDefinition() {
@@ -166,6 +168,91 @@ export function getMcpToolsDefinition() {
           }
         }
       }
+    },
+    {
+      name: 'beadless_global_recall',
+      description: 'Search across global cross-project memories, all past chat sessions, and Antigravity conversation transcripts. Call this when asked "beadless global eriş" or when looking for solutions, decisions, or context discussed in other chats/sessions.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'Topic, question, or keyword to search across all sessions and transcripts (e.g. "auth", "pie bot font", "gods-eye-view")'
+          },
+          limit: {
+            type: 'number',
+            description: 'Maximum number of results to return (default 6)'
+          },
+          includeAntigravity: {
+            type: 'boolean',
+            description: 'Whether to include live searches in Antigravity transcripts (default true)'
+          }
+        },
+        required: ['query']
+      }
+    },
+    {
+      name: 'beadless_chat_save',
+      description: 'Save or update the current chat session in persistent memory. Stores session title, summary, key decisions, files touched, and tags so it can be recalled in future sessions.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            description: 'Short descriptive title of what was accomplished in this chat'
+          },
+          summary: {
+            type: 'string',
+            description: 'Detailed summary of discussions, changes, and lessons learned'
+          },
+          id: {
+            type: 'string',
+            description: 'Optional conversation ID or unique chat identifier'
+          },
+          decisions: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Key decisions made in this session'
+          },
+          filesTouched: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Files created or modified'
+          },
+          tags: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Tags / keywords'
+          }
+        },
+        required: ['title', 'summary']
+      }
+    },
+    {
+      name: 'beadless_chat_list',
+      description: 'List past recorded chat sessions and conversations across workspaces.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          workspaceOnly: {
+            type: 'boolean',
+            description: 'If true, only returns chats from current workspace (default false)'
+          }
+        }
+      }
+    },
+    {
+      name: 'beadless_global_sync',
+      description: 'Scan and index recent Antigravity conversation transcripts into beadless global memory.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          limit: {
+            type: 'number',
+            description: 'Number of recent Antigravity sessions to scan and index (default 20)'
+          }
+        }
+      }
     }
   ];
 }
@@ -178,6 +265,8 @@ export async function handleMcpToolCall(
     tasks: TaskEngine;
     context: ContextEngine;
     snapshot?: SnapshotEngine;
+    chat?: ChatEngine;
+    globalEngine?: GlobalEngine;
   }
 ) {
   // Normalize beadless_ or gitmem_ prefixes
@@ -345,6 +434,99 @@ export async function handleMcpToolCall(
 
       return {
         content: [{ type: 'text', text: formatted }]
+      };
+    }
+
+    case 'global':
+    case 'global_recall': {
+      if (!engines.globalEngine) {
+        throw new Error('GlobalEngine is not configured.');
+      }
+      const results = await engines.globalEngine.search(args.query, {
+        limit: args.limit || 6,
+        includeAntigravity: args.includeAntigravity !== false
+      });
+      if (results.length === 0) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `No global memories or chat sessions found matching query "${args.query}".`
+            }
+          ]
+        };
+      }
+      const formatted = results.map(r => {
+        const typeLabel = r.type === 'chat' ? '💬 CHAT' :
+                          r.type === 'antigravity_session' ? '🛰️ ANTIGRAVITY SESSION' : '🧠 MEMORY';
+        const dateStr = r.date ? new Date(r.date).toLocaleString() : '';
+        const wsStr = r.workspace ? ` | Workspace: ${r.workspace}` : '';
+        const tagsStr = r.tags && r.tags.length > 0 ? `\nTags: ${r.tags.join(', ')}` : '';
+        return `### [${typeLabel}] ${r.title} (ID: ${r.id})\n*Date: ${dateStr}${wsStr}*\n${r.snippet}${tagsStr}`;
+      }).join('\n---\n\n');
+
+      return {
+        content: [{ type: 'text', text: formatted }]
+      };
+    }
+
+    case 'chat_save': {
+      if (!engines.chat) {
+        throw new Error('ChatEngine is not configured.');
+      }
+      const entry = await engines.chat.recordChat({
+        id: args.id,
+        title: args.title,
+        summary: args.summary,
+        decisions: args.decisions,
+        filesTouched: args.filesTouched,
+        tags: args.tags,
+        source: 'mcp'
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Saved chat session [${entry.id}]: "${entry.title}" (Mirrored to global memory)`
+          }
+        ]
+      };
+    }
+
+    case 'chat_list': {
+      if (!engines.chat) {
+        throw new Error('ChatEngine is not configured.');
+      }
+      const chats = await engines.chat.listChats(args.workspaceOnly);
+      if (chats.length === 0) {
+        return {
+          content: [{ type: 'text', text: 'No recorded chat sessions found.' }]
+        };
+      }
+      const formatted = chats.map(c => {
+        const dateStr = new Date(c.updatedAt).toLocaleDateString();
+        const filesStr = c.filesTouched?.length > 0 ? ` | Files: ${c.filesTouched.length}` : '';
+        const decisionsStr = c.decisions?.length > 0 ? ` | Decisions: ${c.decisions.length}` : '';
+        return `- [${c.id}] **${c.title}** (${dateStr} in \`${c.workspace}\`${filesStr}${decisionsStr})\n  ${c.summary.substring(0, 140)}`;
+      }).join('\n\n');
+
+      return {
+        content: [{ type: 'text', text: formatted }]
+      };
+    }
+
+    case 'global_sync': {
+      if (!engines.chat) {
+        throw new Error('ChatEngine is not configured.');
+      }
+      const syncRes = await engines.chat.syncAntigravityRecent(args.limit || 20);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `✔ Synced ${syncRes.synced} recent Antigravity conversation sessions into beadless global index.`
+          }
+        ]
       };
     }
 

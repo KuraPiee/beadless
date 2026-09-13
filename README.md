@@ -87,10 +87,14 @@ Add this to your MCP configuration (`.cursor/mcp.json` or settings):
 
 When attached to an agent, `beadless` exposes these standard MCP tools:
 
+- `beadless_global_recall`: **Cross-session & cross-workspace search!** Queries all recorded chats, global memories, and past Antigravity conversation transcripts for past discussions, decisions, and fixes.
+- `beadless_chat_save`: Saves the current chat session's summary, decisions, and files touched into persistent isolated memory.
+- `beadless_chat_list`: Lists past recorded chat sessions across workspaces.
+- `beadless_global_sync`: Scans and indexes recent Antigravity transcripts into beadless global memory.
 - `beadless_context`: Dumps instant project briefing (tech stack, conventions, critical gotchas, and top unblocked tasks).
 - `beadless_snapshot`: Captures the current workspace state, modified/untracked files, and branch status into persistent memory.
 - `beadless_remember`: Records an architectural decision, lesson, or preference.
-- `beadless_recall`: Fuzzy-searches past decisions and gotchas to avoid repeating mistakes.
+- `beadless_recall`: Fuzzy-searches past decisions and gotchas in current project to avoid repeating mistakes.
 - `beadless_delete`: Removes a memory entry by ID or semantic description.
 - `beadless_task_create`: Adds a task with dependency tracking (`blockedBy: ["task-1"]`).
 - `beadless_task_claim`: Claims a task for the active agent session.
@@ -102,6 +106,35 @@ When attached to an agent, `beadless` exposes these standard MCP tools:
 ## 💻 CLI Usage
 
 You can also use `beadless` directly from your terminal:
+
+### 🌐 Global Recall (Cross-Chat & Antigravity Intelligence)
+```bash
+# View overview of all recorded chats and Antigravity sessions
+npx beadless global
+
+# Search for any topic across all sessions, chats, and transcripts
+npx beadless global "canvas font fix"
+npx beadless global "gods-eye-view"
+npx beadless global "auth overhaul"
+```
+
+### 💬 Multi-Chat Isolation & Session Management
+```bash
+# Save current session accomplishments & decisions
+npx beadless chat save "Implemented OAuth flow" \
+  --summary "Switched to PKCE with argon2 session storage" \
+  --decisions "Use httpOnly cookies" \
+  --tags auth oauth
+
+# List recorded chat sessions across projects
+npx beadless chat list
+
+# Show details of a specific chat session
+npx beadless chat show <chatId>
+
+# Auto-sync recent Antigravity transcripts into beadless global index
+npx beadless chat sync
+```
 
 ### Remember a Decision
 ```bash

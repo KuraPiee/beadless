@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
-import { BeadlessConfig, MemoryEntry, TaskItem, ProjectContext } from '../types/index.js';
+import { BeadlessConfig, MemoryEntry, TaskItem, ProjectContext, ChatEntry } from '../types/index.js';
 
 export class StorageManager {
   private baseDir: string;
@@ -114,6 +114,149 @@ export class StorageManager {
   async writeContext(context: ProjectContext): Promise<void> {
     context.updatedAt = new Date().toISOString();
     await this.writeJson('context.json', context);
+  }
+
+  getChatsDir(): string {
+    return path.join(this.beadlessDir, 'chats');
+  }
+
+  getGlobalDir(): string {
+    const home = process.env.USERPROFILE || process.env.HOME || '';
+    return path.join(home, '.beadless');
+  }
+
+  getGlobalChatsDir(): string {
+    return path.join(this.getGlobalDir(), 'chats');
+  }
+
+  async ensureChatsDir(): Promise<void> {
+    const dir = this.getChatsDir();
+    if (!existsSync(dir)) {
+      await fs.mkdir(dir, { recursive: true });
+    }
+  }
+
+  async ensureGlobalDir(): Promise<void> {
+    const globalDir = this.getGlobalDir();
+    if (!existsSync(globalDir)) {
+      await fs.mkdir(globalDir, { recursive: true });
+    }
+    const globalChats = this.getGlobalChatsDir();
+    if (!existsSync(globalChats)) {
+      await fs.mkdir(globalChats, { recursive: true });
+    }
+  }
+
+  async saveChat(chat: ChatEntry, mirrorGlobal: boolean = true): Promise<void> {
+    await this.ensureChatsDir();
+    const localPath = path.join(this.getChatsDir(), `${chat.id}.json`);
+    await fs.writeFile(localPath, JSON.stringify(chat, null, 2), 'utf-8');
+
+    if (mirrorGlobal) {
+      try {
+        await this.ensureGlobalDir();
+        const globalPath = path.join(this.getGlobalChatsDir(), `${chat.id}.json`);
+        await fs.writeFile(globalPath, JSON.stringify(chat, null, 2), 'utf-8');
+      } catch {
+        // Non-critical global mirror failure
+      }
+    }
+  }
+
+  async readChat(id: string): Promise<ChatEntry | null> {
+    const localPath = path.join(this.getChatsDir(), `${id}.json`);
+    if (existsSync(localPath)) {
+      try {
+        const content = await fs.readFile(localPath, 'utf-8');
+        return JSON.parse(content) as ChatEntry;
+      } catch {}
+    }
+    const globalPath = path.join(this.getGlobalChatsDir(), `${id}.json`);
+    if (existsSync(globalPath)) {
+      try {
+        const content = await fs.readFile(globalPath, 'utf-8');
+        return JSON.parse(content) as ChatEntry;
+      } catch {}
+    }
+    return null;
+  }
+
+  async readAllChats(workspaceOnly: boolean = false): Promise<ChatEntry[]> {
+    const map = new Map<string, ChatEntry>();
+
+    // 1. Read workspace chats
+    const localDir = this.getChatsDir();
+    if (existsSync(localDir)) {
+      try {
+        const files = await fs.readdir(localDir);
+        for (const f of files) {
+          if (f.endsWith('.json')) {
+            try {
+              const raw = await fs.readFile(path.join(localDir, f), 'utf-8');
+              const parsed = JSON.parse(raw) as ChatEntry;
+              map.set(parsed.id, parsed);
+            } catch {}
+          }
+        }
+      } catch {}
+    }
+
+    // 2. Read global chats unless workspaceOnly is true
+    if (!workspaceOnly) {
+      const globalChatsDir = this.getGlobalChatsDir();
+      if (existsSync(globalChatsDir)) {
+        try {
+          const files = await fs.readdir(globalChatsDir);
+          for (const f of files) {
+            if (f.endsWith('.json')) {
+              try {
+                const raw = await fs.readFile(path.join(globalChatsDir, f), 'utf-8');
+                const parsed = JSON.parse(raw) as ChatEntry;
+                if (!map.has(parsed.id)) {
+                  map.set(parsed.id, parsed);
+                }
+              } catch {}
+            }
+          }
+        } catch {}
+      }
+    }
+
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    );
+  }
+
+  async deleteChat(id: string): Promise<boolean> {
+    let deleted = false;
+    const localPath = path.join(this.getChatsDir(), `${id}.json`);
+    if (existsSync(localPath)) {
+      await fs.unlink(localPath);
+      deleted = true;
+    }
+    const globalPath = path.join(this.getGlobalChatsDir(), `${id}.json`);
+    if (existsSync(globalPath)) {
+      await fs.unlink(globalPath);
+      deleted = true;
+    }
+    return deleted;
+  }
+
+  async readGlobalMemories(): Promise<MemoryEntry[]> {
+    const globalPath = path.join(this.getGlobalDir(), 'global_memories.json');
+    if (!existsSync(globalPath)) return [];
+    try {
+      const data = await fs.readFile(globalPath, 'utf-8');
+      return JSON.parse(data) as MemoryEntry[];
+    } catch {
+      return [];
+    }
+  }
+
+  async writeGlobalMemories(memories: MemoryEntry[]): Promise<void> {
+    await this.ensureGlobalDir();
+    const globalPath = path.join(this.getGlobalDir(), 'global_memories.json');
+    await fs.writeFile(globalPath, JSON.stringify(memories, null, 2), 'utf-8');
   }
 
   private async syncMarkdownViews(memories: MemoryEntry[], tasks: TaskItem[]): Promise<void> {

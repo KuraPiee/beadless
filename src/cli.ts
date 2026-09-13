@@ -9,6 +9,8 @@ import { MemoryEngine } from './core/memory.js';
 import { TaskEngine } from './core/tasks.js';
 import { ContextEngine } from './core/context.js';
 import { SnapshotEngine } from './core/snapshot.js';
+import { ChatEngine } from './core/chat.js';
+import { GlobalEngine } from './core/global.js';
 import { runMcpServer } from './mcp/server.js';
 import { MemoryCategory } from './types/index.js';
 
@@ -16,8 +18,8 @@ const program = new Command();
 
 program
   .name('beadless')
-  .description('🧠 Git-native persistent memory & task graph for AI coding agents (Claude Code, Cursor, Antigravity)')
-  .version('0.2.1');
+  .description('🧠 Git-native persistent memory, multi-chat isolation & global intelligence for AI coding agents (Antigravity, Cursor, Claude Code)')
+  .version('0.3.0');
 
 // kurapiee easter egg & bio command
 function printKurapieeBio() {
@@ -403,6 +405,204 @@ program
   .description('Run beadless as an MCP stdio server')
   .action(async () => {
     await runMcpServer();
+  });
+
+// global
+program
+  .command('global [query...]')
+  .alias('g')
+  .alias('global-recall')
+  .description('Search across all chat sessions, global memories, and Antigravity conversation transcripts')
+  .option('-l, --limit <number>', 'Maximum number of results to display', '8')
+  .option('--no-antigravity', 'Disable live search in Antigravity transcripts')
+  .action(async (queryParts, opts) => {
+    const storage = new StorageManager();
+    const git = new GitManager();
+    const chat = new ChatEngine(storage, git);
+    const globalEngine = new GlobalEngine(storage, git, chat);
+
+    const query = Array.isArray(queryParts) && queryParts.length > 0 ? queryParts.join(' ').trim() : '';
+
+    if (!query) {
+      const overview = await globalEngine.getOverview();
+      console.log(pc.cyan('\n🌐 beadless Global Hafıza & Sohbet Merkezi'));
+      console.log(pc.gray('======================================================'));
+      console.log(`Bu Çalışma Alanı Sohbetleri:     ${pc.bold(overview.workspaceChats.toString())}`);
+      console.log(`Genel (Global) Sohbet Kayıtları: ${pc.bold(overview.globalChats.toString())}`);
+      console.log(`Global Bellekler:                ${pc.bold(overview.globalMemories.toString())}`);
+      console.log(`Mevcut Repo Bellekleri:          ${pc.bold(overview.workspaceMemories.toString())}`);
+      console.log(`Tespit Edilen AGY Oturumları:    ${pc.bold(overview.antigravitySessionsDetected.toString())}`);
+      console.log(pc.gray('------------------------------------------------------'));
+      console.log(pc.white('Tüm chat ve oturumlar arasında arama yapmak için:'));
+      console.log(pc.yellow('  beadless global <konu / soru / kelime>'));
+      console.log(pc.gray('Örnekler:'));
+      console.log(pc.gray('  beadless global "canvas font"') + pc.white(' -> Tüm chatlerde Canvas font çözümlerini arar'));
+      console.log(pc.gray('  beadless global "gods-eye-view"') + pc.white(' -> Projeyle ilgili geçmiş oturumları bulur'));
+      console.log(pc.gray('  beadless chat sync') + pc.white(' -> Antigravity geçmişini beadless belleğine endeksler'));
+      console.log(pc.gray('======================================================\n'));
+      return;
+    }
+
+    console.log(pc.cyan(`\n🔍 Global Arama: "${pc.bold(query)}"`));
+    console.log(pc.gray('======================================================'));
+
+    const results = await globalEngine.search(query, {
+      limit: parseInt(opts.limit, 10),
+      includeAntigravity: opts.antigravity !== false
+    });
+
+    if (results.length === 0) {
+      console.log(pc.yellow(`"${query}" ile eşleşen hiçbir sohbet kaydı veya bellek bulunamadı.`));
+      return;
+    }
+
+    for (const r of results) {
+      const typeBadge = r.type === 'chat' ? pc.bgBlue(pc.white(' CHAT ')) :
+                        r.type === 'antigravity_session' ? pc.bgMagenta(pc.white(' AGY OTURUM ')) :
+                        pc.bgGreen(pc.black(' BELLEK '));
+      const dateStr = r.date ? new Date(r.date).toLocaleDateString() : '';
+      console.log(`\n${typeBadge} ${pc.bold(pc.white(r.title))} ${pc.gray(`(${r.id})`)}`);
+      console.log(pc.gray(`Konum/Kaynak: ${r.workspace || 'global'} | Tarih: ${dateStr}`));
+      console.log(r.snippet);
+      if (r.tags && r.tags.length > 0) {
+        console.log(pc.blue(`Etiketler: ${r.tags.join(', ')}`));
+      }
+      console.log(pc.gray('------------------------------------------------------'));
+    }
+    console.log('');
+  });
+
+// chat
+const chatCmd = program.command('chat').description('Manage separate chat sessions and conversation memories');
+
+chatCmd
+  .command('save <title...>')
+  .description('Save or update the current chat session')
+  .option('-s, --summary <summary>', 'Summary of what was discussed and accomplished')
+  .option('-t, --tags <tags...>', 'Tags for organization')
+  .option('-d, --decisions <decisions...>', 'Key decisions made')
+  .option('-f, --files <files...>', 'Files touched / modified')
+  .option('--id <id>', 'Specific conversation or chat ID')
+  .action(async (titleParts, opts) => {
+    const storage = new StorageManager();
+    const git = new GitManager();
+    const chat = new ChatEngine(storage, git);
+
+    const title = Array.isArray(titleParts) ? titleParts.join(' ').trim() : String(titleParts);
+    const summary = opts.summary || title;
+
+    const entry = await chat.recordChat({
+      id: opts.id,
+      title,
+      summary,
+      tags: opts.tags,
+      decisions: opts.decisions,
+      filesTouched: opts.files,
+      source: 'manual'
+    });
+
+    console.log(pc.green(`✔ Sohbet oturumu kaydedildi: ${pc.bold(`[${entry.id}]`)} "${entry.title}"`));
+    console.log(pc.gray(`  Yerel ve global hafızaya yansıtıldı (.beadless/chats/${entry.id}.json)`));
+  });
+
+chatCmd
+  .command('list')
+  .description('List recorded chat sessions')
+  .option('-w, --workspace-only', 'List only chats for this workspace', false)
+  .action(async (opts) => {
+    const storage = new StorageManager();
+    const git = new GitManager();
+    const chat = new ChatEngine(storage, git);
+
+    const chats = await chat.listChats(opts.workspaceOnly);
+    if (chats.length === 0) {
+      console.log(pc.yellow('Kayıtlı herhangi bir sohbet bulunamadı.'));
+      return;
+    }
+
+    console.log(pc.cyan(`\n💬 Kayıtlı Sohbetler (${chats.length}):\n`));
+    for (const c of chats) {
+      const dateStr = new Date(c.updatedAt).toLocaleDateString();
+      const filesCount = c.filesTouched?.length ? ` | 📁 ${c.filesTouched.length} dosya` : '';
+      console.log(`- ${pc.magenta(`[${c.id}]`)} ${pc.bold(c.title)} ${pc.gray(`(${c.workspace}, ${dateStr}${filesCount})`)}`);
+      if (c.summary) {
+        console.log(pc.gray(`  ${c.summary.substring(0, 120)}${c.summary.length > 120 ? '...' : ''}`));
+      }
+    }
+    console.log('');
+  });
+
+chatCmd
+  .command('sync')
+  .description('Scan and index recent Antigravity conversation transcripts into beadless')
+  .option('-l, --limit <number>', 'Number of recent sessions to index', '25')
+  .action(async (opts) => {
+    const storage = new StorageManager();
+    const git = new GitManager();
+    const chat = new ChatEngine(storage, git);
+
+    const limit = parseInt(opts.limit, 10) || 25;
+    console.log(pc.cyan(`\n🛰️ Antigravity oturumları taranıyor ve endeksleniyor (son ${limit} oturum)...`));
+
+    const res = await chat.syncAntigravityRecent(limit);
+    console.log(pc.green(`✔ ${res.synced} Antigravity oturumu başarıyla beadless global hafızasına endekslendi!`));
+    console.log(pc.gray('Artık "beadless global <konu>" ile tüm bu oturumlar içinde anında arama yapabilirsiniz.\n'));
+  });
+
+chatCmd
+  .command('show <chatId>')
+  .description('Show details of a specific chat session')
+  .action(async (chatId) => {
+    const storage = new StorageManager();
+    const git = new GitManager();
+    const chat = new ChatEngine(storage, git);
+
+    const entry = await chat.getChat(chatId);
+    if (!entry) {
+      console.log(pc.red(`"${chatId}" ID'sine sahip bir sohbet kaydı bulunamadı.`));
+      return;
+    }
+
+    console.log(pc.cyan(`\n💬 Sohbet Detayı: ${pc.bold(entry.title)}`));
+    console.log(pc.gray('======================================================'));
+    console.log(`ID:           ${entry.id}`);
+    console.log(`Workspace:    ${entry.workspace}`);
+    console.log(`Tarih:        ${new Date(entry.createdAt).toLocaleString()}`);
+    console.log(`Kaynak:       ${entry.source || 'mcp'}`);
+    console.log(`Özet:\n${entry.summary}\n`);
+
+    if (entry.decisions && entry.decisions.length > 0) {
+      console.log(pc.bold('Alınan Kararlar:'));
+      for (const d of entry.decisions) console.log(`  - ${d}`);
+      console.log('');
+    }
+
+    if (entry.filesTouched && entry.filesTouched.length > 0) {
+      console.log(pc.bold('Dokunulan Dosyalar:'));
+      for (const f of entry.filesTouched) console.log(`  - ${f}`);
+      console.log('');
+    }
+
+    if (entry.tags && entry.tags.length > 0) {
+      console.log(pc.blue(`Etiketler: ${entry.tags.join(', ')}`));
+    }
+    console.log(pc.gray('======================================================\n'));
+  });
+
+chatCmd
+  .command('del <chatId>')
+  .description('Delete a chat session')
+  .action(async (chatId) => {
+    const storage = new StorageManager();
+    const git = new GitManager();
+    const chat = new ChatEngine(storage, git);
+
+    const deleted = await chat.deleteChat(chatId);
+    if (deleted) {
+      console.log(pc.green(`✔ Sohbet kaydı [${chatId}] başarıyla silindi.`));
+    } else {
+      console.log(pc.red(`[${chatId}] bulunamadı veya silinemedi.`));
+    }
   });
 
 // status

@@ -59,6 +59,39 @@ export interface SnapshotResult {
   summary: string;
 }
 
+export interface ChatSnippet {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp?: string;
+}
+
+export interface ChatEntry {
+  id: string;
+  title: string;
+  summary: string;
+  workspace: string;
+  branch?: string;
+  createdAt: string;
+  updatedAt: string;
+  tags: string[];
+  decisions: string[];
+  filesTouched: string[];
+  messagesCount?: number;
+  snippets?: ChatSnippet[];
+  source?: 'antigravity' | 'manual' | 'mcp' | 'cursor' | 'claude';
+}
+
+export interface GlobalSearchResult {
+  id: string;
+  type: 'chat' | 'memory' | 'antigravity_session';
+  title: string;
+  snippet: string;
+  workspace?: string;
+  date: string;
+  tags?: string[];
+  urlOrPath?: string;
+}
+
 export interface BeadlessConfig {
   version: string;
   autoCommit: boolean;
@@ -68,6 +101,10 @@ export interface BeadlessConfig {
   autoSnapshot?: {
     enabled: boolean;
     intervalMinutes: number;
+  };
+  globalSync?: {
+    enabled: boolean;
+    antigravityPath?: string;
   };
 }
 export type GitMemConfig = BeadlessConfig;

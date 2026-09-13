@@ -10,6 +10,8 @@ import { MemoryEngine } from '../core/memory.js';
 import { TaskEngine } from '../core/tasks.js';
 import { ContextEngine } from '../core/context.js';
 import { SnapshotEngine } from '../core/snapshot.js';
+import { ChatEngine } from '../core/chat.js';
+import { GlobalEngine } from '../core/global.js';
 import { getMcpToolsDefinition, handleMcpToolCall } from './tools.js';
 
 export async function runMcpServer(cwd: string = process.cwd()) {
@@ -23,11 +25,13 @@ export async function runMcpServer(cwd: string = process.cwd()) {
   const tasks = new TaskEngine(storage, git);
   const context = new ContextEngine(storage, git);
   const snapshot = new SnapshotEngine(storage, git, memory);
+  const chat = new ChatEngine(storage, git);
+  const globalEngine = new GlobalEngine(storage, git, chat);
 
   const server = new Server(
     {
       name: 'beadless',
-      version: '0.2.1'
+      version: '0.3.0'
     },
     {
       capabilities: {
@@ -45,7 +49,7 @@ export async function runMcpServer(cwd: string = process.cwd()) {
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
     try {
-      return await handleMcpToolCall(name, args || {}, { memory, tasks, context, snapshot });
+      return await handleMcpToolCall(name, args || {}, { memory, tasks, context, snapshot, chat, globalEngine });
     } catch (error: any) {
       return {
         isError: true,

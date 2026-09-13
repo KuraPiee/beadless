@@ -5,5 +5,7 @@ export * from './core/tasks.js';
 export * from './core/context.js';
 export * from './core/git.js';
 export * from './core/snapshot.js';
+export * from './core/chat.js';
+export * from './core/global.js';
 export * from './mcp/server.js';
 export * from './mcp/tools.js';
